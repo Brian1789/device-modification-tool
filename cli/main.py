@@ -26,18 +26,20 @@ class Application:
             print("ADB is not installed or is not on PATH.", file=sys.stderr)
             return 1
         for device in self.adb.list_devices():
+            if not self._is_emulator(device.serial):
+                continue
             print(f"{device.serial}\t{device.state}\t{device.detail}".rstrip())
         return 0
 
     def info(self) -> int:
-        info = self.collector.collect(self.args.serial)
+        info = self.collector.collect(self._target_serial())
         print(json.dumps(info.to_dict(), indent=2) if self.args.json else DeviceInfoCollector.format_text(info))
         return 0
 
     def status(self) -> int:
         print(f"ADB installed: {self.adb.is_installed()}")
         try:
-            devices = self.adb.list_devices()
+            devices = [item for item in self.adb.list_devices() if self._is_emulator(item.serial)]
         except AdbError as exc:
             print(f"ADB error: {exc}", file=sys.stderr)
             return 1
@@ -47,35 +49,35 @@ class Application:
         return 0
 
     def shell(self) -> int:
-        result = self.adb.shell(self.args.command, self.args.serial)
+        result = self.adb.shell(self.args.command, self._target_serial())
         if result.stdout:
             print(result.stdout)
         return 0
 
     def reboot(self) -> int:
-        self.adb.reboot(self.args.mode, self.args.serial)
+        self.adb.reboot(self.args.mode, self._target_serial())
         print("Reboot requested.")
         return 0
 
     def magisk_status(self) -> int:
-        status = MagiskManager(self.adb).status(self.args.serial or self._serial())
+        status = MagiskManager(self.adb).status(self._target_serial())
         print(json.dumps(status, indent=2))
         return 0
 
     def magisk_install(self) -> int:
-        serial = self.args.serial or self._serial()
+        serial = self._target_serial()
         MagiskManager(self.adb).install(serial, self.args.zip_path)
         print("Module installation command completed. Reboot and verify module activation.")
         return 0
 
     def magisk_remove(self) -> int:
-        serial = self.args.serial or self._serial()
+        serial = self._target_serial()
         MagiskManager(self.adb).remove(serial, self.args.module_id)
         print("Module removed. Reboot and verify the device.")
         return 0
 
     def backup(self) -> int:
-        path = BackupManager(self.collector, self.args.backup_dir).create(self.args.serial)
+        path = BackupManager(self.collector, self.args.backup_dir).create(self._target_serial())
         print(path)
         return 0
 
@@ -85,12 +87,12 @@ class Application:
         return 0
 
     def verify(self) -> int:
-        ok = BackupManager(self.collector, self.args.backup_dir).verify(self.args.backup_path, self.args.serial)
+        ok = BackupManager(self.collector, self.args.backup_dir).verify(self.args.backup_path, self._target_serial())
         print("verified" if ok else "mismatch")
         return 0 if ok else 1
 
     def diagnostics(self) -> int:
-        report = DiagnosticsCollector(self.adb, self.collector).collect(self.args.serial, self.args.output)
+        report = DiagnosticsCollector(self.adb, self.collector).collect(self._target_serial(), self.args.output)
         if not self.args.output:
             print(json.dumps(report, indent=2))
         else:
@@ -102,10 +104,24 @@ class Application:
         return 0
 
     def _serial(self) -> str:
-        devices = [item for item in self.adb.list_devices() if item.state == "device"]
+        devices = [
+            item
+            for item in self.adb.list_devices()
+            if item.state == "device" and self._is_emulator(item.serial)
+        ]
         if len(devices) != 1:
-            raise AdbError("Specify --serial when zero or multiple usable devices are connected.")
+            raise AdbError("Start exactly one Android Studio emulator or specify its emulator-* serial with --serial.")
         return devices[0].serial
+
+    def _target_serial(self) -> str:
+        serial = self.args.serial or self._serial()
+        if not self._is_emulator(serial):
+            raise AdbError("Only Android Studio emulator targets are supported; use an emulator-* serial.")
+        return serial
+
+    @staticmethod
+    def _is_emulator(serial: str) -> bool:
+        return serial.startswith("emulator-")
 
 
 def build_parser() -> argparse.ArgumentParser:

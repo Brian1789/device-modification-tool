@@ -1,6 +1,6 @@
 # Android Device Modification Tool
 
-A lightweight Python toolkit for managing a physical Android test device over ADB and Fastboot. It is designed for an 8 GB Windows laptop and does not require Android Studio, an emulator, Docker, or a virtual machine.
+A lightweight Python toolkit for managing an Android Studio emulator over ADB and Fastboot. Android Studio, an Android Virtual Device (AVD), and a virtualization-capable VM are required. Physical USB devices are not supported by the documented workflow.
 
 ## Features
 
@@ -11,13 +11,22 @@ A lightweight Python toolkit for managing a physical Android test device over AD
 - Device-state backup metadata and verification
 - Developer-owned Magisk module install, enable/disable, listing, and removal primitives
 - JSON-lines application logging without credential fields
-- Mock-based tests that run without a phone
+- Mock-based unit tests plus emulator-backed integration checks
 
 ## Quick start on Windows
 
-1. Install Python 3.10+, Git, and Android SDK Platform-Tools. Add the Platform-Tools directory to `PATH`.
-2. Enable Developer options and USB debugging on a physical test device. Connect it and accept the RSA prompt.
-3. Create an environment and install the project:
+1. Install Python 3.10+, Git, and Android Studio with the Android SDK, SDK Platform-Tools, and Android Emulator components.
+2. Enable hardware virtualization in firmware and configure the Android Emulator to use the host virtualization provider (WHPX or Hyper-V on Windows).
+3. In Android Studio, create and start an Android Virtual Device (AVD). Leave the emulator running before using this tool.
+4. Verify that the emulator is visible to ADB:
+
+```powershell
+adb devices
+```
+
+The target must appear with an `emulator-` serial. Physical USB devices are outside the supported configuration.
+
+5. Create an environment and install the project:
 
 ```powershell
 py -3 -m venv .venv
@@ -26,13 +35,13 @@ py -3 -m pip install -e .
 py -3 -m pip install -r requirements-dev.txt
 ```
 
-4. Run offline tests:
+6. Run unit tests:
 
 ```powershell
 py -3 -m pytest -q
 ```
 
-5. Inspect the device:
+7. Inspect the running emulator:
 
 ```powershell
 device-tool devices
