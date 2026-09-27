@@ -1,7 +1,0 @@
-{
-  "profile": "default",
-  "settings": {
-    "require_explicit_serial": true,
-    "backup_before_change": true
-  }
-}

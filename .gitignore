@@ -7,3 +7,6 @@ backups/*.json
 config/backups/
 config/devices/*.json
 config/magisk-state.json
+.agents/
+.cursor/
+brag-output/

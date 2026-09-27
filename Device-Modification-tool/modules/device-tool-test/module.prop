@@ -1,6 +1,0 @@
-id=device_tool_test
-name=Device Tool Educational Test Module
-version=0.1.0
-versionCode=1
-author=Device Modification Tool
-description=Harmless developer test module that writes a marker log.
