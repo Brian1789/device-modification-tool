@@ -1,0 +1,1 @@
+A longer look at device-tool: Android Studio, a virtual device, and one focused emulator workflow for ADB, diagnostics, device info, and explicit backups. Built for the `emulator-5554` kind of day.
